@@ -50,6 +50,7 @@ class EPub
       customOpfTemplatePath: null
       customNcxTocTemplatePath: null
       customHtmlTocTemplatePath: null
+      disableTocPage: false
       version: 3
     }, options
 
@@ -238,19 +239,31 @@ class EPub
       generateDefer.reject(new Error('Custom file to HTML toc template not found.'))
       return generateDefer.promise
 
-    Q.all([
-      Q.nfcall ejs.renderFile, opfPath, self.options
-      Q.nfcall ejs.renderFile, ncxTocPath, self.options
-      Q.nfcall ejs.renderFile, htmlTocPath, self.options
-    ]).spread (data1, data2, data3)->
-      fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/content.opf"), data1)
-      fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/toc.ncx"), data2)
-      fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3)
-      generateDefer.resolve()
-    , (err)->
-      console.error arguments
-      generateDefer.reject(err)
-
+    if self.options.disableTocPage
+      Q.all([
+        Q.nfcall ejs.renderFile, opfPath, self.options
+        Q.nfcall ejs.renderFile, ncxTocPath, self.options
+      ]).spread (data1, data2)->
+        fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/content.opf"), data1)
+        fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/toc.ncx"), data2)
+        generateDefer.resolve()
+      , (err)->
+        console.error arguments
+        generateDefer.reject(err)
+    else
+      Q.all([
+        Q.nfcall ejs.renderFile, opfPath, self.options
+        Q.nfcall ejs.renderFile, ncxTocPath, self.options
+        Q.nfcall ejs.renderFile, htmlTocPath, self.options
+      ]).spread (data1, data2, data3)->
+        fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/content.opf"), data1)
+        fs.writeFileSync(path.resolve(self.uuid , "./OEBPS/toc.ncx"), data2)
+        fs.writeFileSync(path.resolve(self.uuid, "./OEBPS/toc.xhtml"), data3)
+        generateDefer.resolve()
+      , (err)->
+        console.error arguments
+        generateDefer.reject(err)
+    
     generateDefer.promise
 
   makeCover: ()->
